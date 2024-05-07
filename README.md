@@ -22,14 +22,18 @@ The dataset, provided by Max Planck Institute for Meteorology and hosted on Kagg
 
 Key metrics for each cloud category were analyzed, including mask rate, mask size rate, and figure with object rate.
 
-- **Figure 1**: Mask Rate
-- **Figure 2**: Mask Size Rate
-- **Figure 3**: Figure With Object Rate
+![Mask Rate](images/mask_rate.jpg "Figure 1: Mask Rate")
+
+![Mask Size Rate](images/mask_size_rate.jpg "Figure 2: Mask Size Rate")
+
+![Figure With Object Rate](images/figwithobjrate.jpg "Figure 3: Figure With Object Rate")
 
 ## Models
 
 - **Baseline Model (U-net):** Initial model using a standard U-net architecture for segmentation.
+![U-net Model](images/Unet.png "Figure 4: U-net Model")
 - **PSPNet:** An advanced model employing a Pyramid Scene Parsing Network to potentially enhance segmentation performance through global contextual awareness.
+![PSPNet Model](images/PSPnet.png "Figure 5: PSPNet Model")
 
 ## Methodology
 
@@ -38,6 +42,8 @@ Images are resized and normalized to feed into the models. The ground truth is d
 
 ### Model Training
 Both models are trained on the dataset with specific augmentations like horizontal flips and rotations to improve robustness and generalization.
+
+![Augmentaion](images/259371b_aug.png "Figure 6: Data Augmentation")
 
 ### Evaluation
 Model performance is evaluated using the Dice Coefficient during validation and testing phases.
@@ -49,12 +55,17 @@ PSPNet demonstrated superior performance over U-net, which aligns with our expec
 ### Validation Results
 
 - **U-net**
-  - **Training Loss and Validation Loss**: Figure 10
-  - **Dice Score**: Figure 11
+  - **Training Loss and Validation Loss**:
+  ![U-net Training Loss](images/U-net-loss.png "Figure 7: U-net Training Loss and Validation Loss")
+  - **Dice Score**:
+  ![U-net Dice Score](images/DiceScoreUnet.png "Figure 8: U-net Dice Score")
 
 - **PSPNet**
-  - **Training Loss and Validation Loss**: Figure 12
-  - **Dice Score**: Figure 13
+  - **Training Loss and Validation Loss**:
+  ![PSPNet Training Loss](images/PSPNet-loss.png "Figure 9: PSPNet Training Loss and Validation Loss")
+  - **Dice Score**:
+  ![PSPNet Dice Score](images/DiceScorePSPNet.png "Figure 10: PSPNet Dice Score")
+    
 
 ### Test Results Comparison
 
@@ -63,7 +74,7 @@ PSPNet demonstrated superior performance over U-net, which aligns with our expec
 | U-net  | 0.4676           | 0.9650           |
 | PSPNet | 0.4929           | 0.9044           |
 
-- **Figure 14**: Segmentation Visualization
+- ![Segmentation Visualization](images/Visualization.png "Figure 11: Segmentation Visualization")
 
 ## Installation
 
