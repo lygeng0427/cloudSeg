@@ -59,16 +59,10 @@ pip install torch torchvision numpy opencv-python matplotlib tqdm albumentations
 
 ## Usage
 
-To train the UNet model on your dataset, use the following command:
+To train and evaluate the model, use the following command:
 
 ```bash
-python train_unet.py
-```
-
-To evaluate the model and generate segmentation masks:
-
-```bash
-python evaluate.py
+python main.py
 ```
 
 ## Repository Layout
