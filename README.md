@@ -18,6 +18,14 @@ Accurate classification of cloud types is crucial for enhancing our understandin
 
 The dataset, provided by Max Planck Institute for Meteorology and hosted on Kaggle, includes 5546 images categorized into four types of cloud formations. The `train.csv` file contains run-length encoded masks, and the `train_images` folder holds the corresponding JPG images.
 
+### Statistical Analysis
+
+Key metrics for each cloud category were analyzed, including mask rate, mask size rate, and figure with object rate.
+
+- **Figure 1**: Mask Rate
+- **Figure 2**: Mask Size Rate
+- **Figure 3**: Figure With Object Rate
+
 ## Models
 
 - **Baseline Model (U-net):** Initial model using a standard U-net architecture for segmentation.
@@ -38,7 +46,24 @@ Model performance is evaluated using the Dice Coefficient during validation and 
 
 PSPNet demonstrated superior performance over U-net, which aligns with our expectations given its advanced capabilities in handling global contextual information.
 
+### Validation Results
 
+- **U-net**
+  - **Training Loss and Validation Loss**: Figure 10
+  - **Dice Score**: Figure 11
+
+- **PSPNet**
+  - **Training Loss and Validation Loss**: Figure 12
+  - **Dice Score**: Figure 13
+
+### Test Results Comparison
+
+| Model  | Dice Score       | Test Loss        |
+|--------|------------------|------------------|
+| U-net  | 0.4676           | 0.9650           |
+| PSPNet | 0.4929           | 0.9044           |
+
+- **Figure 14**: Segmentation Visualization
 
 ## Installation
 
