@@ -74,7 +74,9 @@ PSPNet demonstrated superior performance over U-net, which aligns with our expec
 | U-net  | 0.4676           | 0.9650           |
 | PSPNet | 0.4929           | 0.9044           |
 
-- ![Segmentation Visualization](images/Visualization.png "Figure 11: Segmentation Visualization")
+### Visualization of PSPNet Performance
+
+![Segmentation Visualization](images/Visualization.png "Figure 11: Segmentation Visualization")
 
 ## Installation
 
