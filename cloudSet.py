@@ -29,10 +29,12 @@ from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 
 # ablumentations for easy image augmentation for input as well as output
 import albumentations as albu
+
 # from albumentations import torch as AT
-plt.style.use('bmh')
+plt.style.use("bmh")
 
 from utils import *
+
 
 class CloudDataset(Dataset):
     def __init__(
@@ -40,8 +42,8 @@ class CloudDataset(Dataset):
         df: pd.DataFrame = None,
         datatype: str = "train",
         img_ids: np.array = None,
-        transforms = albu.Compose([albu.HorizontalFlip()]),
-        img_paths = "understanding_cloud_organization/train_image/"
+        transforms=albu.Compose([albu.HorizontalFlip()]),
+        img_paths="understanding_cloud_organization/train_image/",
     ):
         self.df = df
         self.data_folder = f"{img_paths}"

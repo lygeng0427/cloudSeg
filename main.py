@@ -29,8 +29,9 @@ from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 
 # ablumentations for easy image augmentation for input as well as output
 import albumentations as albu
+
 # from albumentations import torch as AT
-plt.style.use('bmh')
+plt.style.use("bmh")
 
 from utils import *
 from cloudSet import CloudDataset
@@ -40,7 +41,11 @@ from models.UNet import UNet
 from models.PSPNet import PSPNet
 
 
-def make_img(df: pd.DataFrame,  shape: tuple = (350, 525), path="understanding_cloud_organization/"):
+def make_img(
+    df: pd.DataFrame,
+    shape: tuple = (350, 525),
+    path="understanding_cloud_organization/",
+):
     """
     create 350,525 img for later dataloader
     """
@@ -52,13 +57,16 @@ def make_img(df: pd.DataFrame,  shape: tuple = (350, 525), path="understanding_c
             enocded = enocded.EncodedPixels
             encoded = enocded.iloc[0]
             mask = np.zeros((shape[0], shape[1]), dtype=np.float32)
-            if encoded is not np.nan:   
+            if encoded is not np.nan:
                 mask = rle_decode(encoded)
                 if mask[:, :].shape != (350, 525):
                     mask = cv2.resize(mask, (525, 350))
                 masks[:, :, classidx] = mask
                 # mask*=225
-            cv2.imwrite(path+"train_images_525_withcolor/"+im_name[:-4]+classid+".jpg",mask)
+            cv2.imwrite(
+                path + "train_images_525_withcolor/" + im_name[:-4] + classid + ".jpg",
+                mask,
+            )
     return masks
 
 
@@ -68,8 +76,8 @@ def main():
     img_paths = "understanding_cloud_organization/train_image/"
     train_on_gpu = torch.cuda.is_available()
     SEED = 42
-    MODEL_NO = 0 # in K-fold
-    N_FOLDS = 10 # in K-fold
+    MODEL_NO = 0  # in K-fold
+    N_FOLDS = 10  # in K-fold
     seed_everything(SEED)
     torch.cuda.set_device(0)
     print(os.listdir(path))
@@ -94,18 +102,18 @@ def main():
     )
     print(id_mask_count.info())
     print(id_mask_count.head())
-    test_id_mask_count = id_mask_count[:int(len(id_mask_count) / 5)]
-    id_mask_count = id_mask_count[int(len(id_mask_count) / 5):]
+    test_id_mask_count = id_mask_count[: int(len(id_mask_count) / 5)]
+    id_mask_count = id_mask_count[int(len(id_mask_count) / 5) :]
 
     ids = id_mask_count["img_id"].values
     li = [
         [train_index, test_index]
         for train_index, test_index in StratifiedKFold(
-            n_splits=N_FOLDS, random_state=SEED
-        ,shuffle=True).split(ids, id_mask_count["count"])
+            n_splits=N_FOLDS, random_state=SEED, shuffle=True
+        ).split(ids, id_mask_count["count"])
     ]
     train_ids, valid_ids = ids[li[MODEL_NO][0]], ids[li[MODEL_NO][1]]
-    test_ids = test_id_mask_count['img_id'].values
+    test_ids = test_id_mask_count["img_id"].values
 
     print(f"training set   {train_ids[:5]}.. with length {len(train_ids)}")
     print(f"validation set {valid_ids[:5]}.. with length {len(valid_ids)}")
@@ -134,14 +142,10 @@ def main():
         valid_dataset, batch_size=bs, shuffle=False, num_workers=num_workers
     )
 
-
-    test_dataset = CloudDataset(df=train,
-                                datatype='test', 
-                                img_ids=ids,
-                                transforms=get_validation_augmentation())
-    test_loader = DataLoader(test_dataset, batch_size=bs,
-                            shuffle=False, num_workers=0)
-
+    test_dataset = CloudDataset(
+        df=train, datatype="test", img_ids=ids, transforms=get_validation_augmentation()
+    )
+    test_loader = DataLoader(test_dataset, batch_size=bs, shuffle=False, num_workers=0)
 
     # # Debug
     # sample_size = 25
@@ -153,20 +157,21 @@ def main():
     # sampler = SubsetRandomSampler(indices)
     # valid_loader = DataLoader(valid_dataset, batch_size=bs, sampler=sampler, num_workers=num_workers)
 
-
     # indices = random.sample(range(len(test_dataset)), sample_size)
     # sampler = SubsetRandomSampler(indices)
     # test_loader = DataLoader(test_dataset, batch_size=bs, sampler=sampler, num_workers=num_workers)
 
     model = UNet(n_channels=3, n_classes=4).float()
     if train_on_gpu:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.to(device)
 
     criterion = BCEDiceLoss(eps=1.0, activation=None)
-    optimizer = RAdam(model.parameters(), lr = 0.005)
-    current_lr = [param_group['lr'] for param_group in optimizer.param_groups][0]
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.2, patience=2, cooldown=2)
+    optimizer = RAdam(model.parameters(), lr=0.005)
+    current_lr = [param_group["lr"] for param_group in optimizer.param_groups][0]
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, factor=0.2, patience=2, cooldown=2
+    )
 
     """## Training loop"""
 
@@ -176,8 +181,8 @@ def main():
     valid_loss_list = []
     dice_score_list = []
     lr_rate_list = []
-    valid_loss_min = np.Inf # track change in validation loss
-    for epoch in range(1, n_epochs+1):
+    valid_loss_min = np.Inf  # track change in validation loss
+    for epoch in range(1, n_epochs + 1):
 
         # keep track of training and validation loss
         train_loss = 0.0
@@ -185,7 +190,7 @@ def main():
         dice_score = 0.0
         print(f"Training {epoch} Start")
         model.train()
-        bar = tq(train_loader, postfix={"train_loss":0.0})
+        bar = tq(train_loader, postfix={"train_loss": 0.0})
         for data, target in bar:
             # move tensors to GPU if CUDA is available
             # print(data.size(),target.size())
@@ -195,7 +200,7 @@ def main():
             output = model(data)
             # calculate the batch loss
             loss = criterion(output, target)
-            #print(loss)
+            # print(loss)
             # clear the gradients of all optimized variables
             optimizer.zero_grad()
             # backward pass: compute gradient of the loss with respect to model parameters
@@ -203,15 +208,15 @@ def main():
             # perform a single optimization step (parameter update)
             optimizer.step()
             # update training loss
-            train_loss += loss.item()*data.size(0)
-            bar.set_postfix(ordered_dict={"train_loss":loss.item()})
+            train_loss += loss.item() * data.size(0)
+            bar.set_postfix(ordered_dict={"train_loss": loss.item()})
             # print(f"train epoch {epoch}: loss : {loss}")
-  
+
         # validate the model #
         model.eval()
         del data, target
         with torch.no_grad():
-            bar = tq(valid_loader, postfix={"valid_loss":0.0, "dice_score":0.0})
+            bar = tq(valid_loader, postfix={"valid_loss": 0.0, "dice_score": 0.0})
             for data, target in bar:
                 # move tensors to GPU if CUDA is available
                 if train_on_gpu:
@@ -220,32 +225,42 @@ def main():
                 output = model(data)
                 # calculate the batch loss
                 loss = criterion(output, target)
-                # update average validation loss 
-                valid_loss += loss.item()*data.size(0)
-                dice_cof = dice_no_threshold(output.to(device), target.to(device)).item()
-                dice_score +=  dice_cof * data.size(0)
-                bar.set_postfix(ordered_dict={"valid_loss":loss.item(), "dice_score":dice_cof})  
+                # update average validation loss
+                valid_loss += loss.item() * data.size(0)
+                dice_cof = dice_no_threshold(
+                    output.to(device), target.to(device)
+                ).item()
+                dice_score += dice_cof * data.size(0)
+                bar.set_postfix(
+                    ordered_dict={"valid_loss": loss.item(), "dice_score": dice_cof}
+                )
         # calculate average losses
-        train_loss = train_loss/len(train_loader.dataset)
-        valid_loss = valid_loss/len(valid_loader.dataset)
-        dice_score = dice_score/len(valid_loader.dataset)
-        print(f"train loss: {train_loss}, valid loss: {valid_loss}, dice score: {dice_score}")
-        
+        train_loss = train_loss / len(train_loader.dataset)
+        valid_loss = valid_loss / len(valid_loader.dataset)
+        dice_score = dice_score / len(valid_loader.dataset)
+        print(
+            f"train loss: {train_loss}, valid loss: {valid_loss}, dice score: {dice_score}"
+        )
+
         train_loss_list.append(train_loss)
         valid_loss_list.append(valid_loss)
         dice_score_list.append(dice_score)
-        lr_rate_list.append([param_group['lr'] for param_group in optimizer.param_groups])
-        
-        # print training/validation statistics 
-        
+        lr_rate_list.append(
+            [param_group["lr"] for param_group in optimizer.param_groups]
+        )
+
+        # print training/validation statistics
+
         # save model if validation loss has decreased
         if valid_loss <= valid_loss_min:
-            print('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(
-            valid_loss_min,
-            valid_loss))
-            torch.save(model.state_dict(), 'model_cifar.pt')
+            print(
+                "Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...".format(
+                    valid_loss_min, valid_loss
+                )
+            )
+            torch.save(model.state_dict(), "model_cifar.pt")
             valid_loss_min = valid_loss
-        
+
         scheduler.step(valid_loss)
 
     """## Ploting Metrics"""
@@ -257,38 +272,37 @@ def main():
 
     # Search for the model file
     for file in contents:
-        if file == 'model_cifar.pt':
+        if file == "model_cifar.pt":
             print(f"Found model file at: {os.path.join(cwd, file)}")
 
-
-    plt.figure(figsize=(10,10))
+    plt.figure(figsize=(10, 10))
     plt.plot([i[0] for i in lr_rate_list])
-    plt.ylabel('learing rate during training', fontsize=22)
-    plt.savefig(save_path+"learning rate.png")
+    plt.ylabel("learing rate during training", fontsize=22)
+    plt.savefig(save_path + "learning rate.png")
     plt.show()
 
-    plt.figure(figsize=(10,10))
-    plt.plot(train_loss_list,  marker='o', label="Training Loss")
-    plt.plot(valid_loss_list,  marker='o', label="Validation Loss")
-    plt.ylabel('loss', fontsize=22)
+    plt.figure(figsize=(10, 10))
+    plt.plot(train_loss_list, marker="o", label="Training Loss")
+    plt.plot(valid_loss_list, marker="o", label="Validation Loss")
+    plt.ylabel("loss", fontsize=22)
     plt.legend()
-    plt.savefig(save_path+"loss.png")
+    plt.savefig(save_path + "loss.png")
     plt.show()
 
-    plt.figure(figsize=(10,10))
+    plt.figure(figsize=(10, 10))
     plt.plot(dice_score_list)
-    plt.ylabel('Dice score')
-    plt.savefig(save_path+"Dice Score.png")
+    plt.ylabel("Dice score")
+    plt.savefig(save_path + "Dice Score.png")
     plt.show()
 
     # load best model
-    model.load_state_dict(torch.load('model_cifar.pt'))
+    model.load_state_dict(torch.load("model_cifar.pt"))
     model.eval()
 
     valid_masks = []
     count = 0
-    tr = min(len(valid_ids)*4, 2000)
-    probabilities = np.zeros((tr, 350, 525), dtype = np.float32)
+    tr = min(len(valid_ids) * 4, 2000)
+    probabilities = np.zeros((tr, 350, 525), dtype=np.float32)
     for data, target in tq(valid_loader):
         if train_on_gpu:
             data = data.cuda()
@@ -329,11 +343,11 @@ def main():
                             d.append(dice(i, j))
                     attempts.append((t, ms, np.mean(d)))
 
-            attempts_df = pd.DataFrame(attempts, columns=['threshold', 'size', 'dice'])
-            attempts_df = attempts_df.sort_values('dice', ascending=False)
+            attempts_df = pd.DataFrame(attempts, columns=["threshold", "size", "dice"])
+            attempts_df = attempts_df.sort_values("dice", ascending=False)
             print(attempts_df.head())
-            best_threshold = attempts_df['threshold'].values[0]
-            best_size = attempts_df['size'].values[0]
+            best_threshold = attempts_df["threshold"].values[0]
+            best_size = attempts_df["size"].values[0]
             class_params[class_id] = (best_threshold, best_size)
 
     del masks
@@ -341,22 +355,21 @@ def main():
     del probabilities
     gc.collect()
 
-    attempts_df = pd.DataFrame(attempts, columns=['threshold', 'size', 'dice'])
+    attempts_df = pd.DataFrame(attempts, columns=["threshold", "size", "dice"])
     print(class_params)
 
-    attempts_df.groupby(['threshold'])['dice'].max()
+    attempts_df.groupby(["threshold"])["dice"].max()
 
-    attempts_df.groupby(['size'])['dice'].max()
+    attempts_df.groupby(["size"])["dice"].max()
 
-    attempts_df = attempts_df.sort_values('dice', ascending=False)
+    attempts_df = attempts_df.sort_values("dice", ascending=False)
     attempts_df.head(10)
 
-    sns.lineplot(x='threshold', y='dice', hue='size', data=attempts_df)
-    plt.title('Threshold and min size vs dice')
-    plt.savefig(save_path+"threshold.jpg")
-    best_threshold = attempts_df['threshold'].values[0]
-    best_size = attempts_df['size'].values[0]
-
+    sns.lineplot(x="threshold", y="dice", hue="size", data=attempts_df)
+    plt.title("Threshold and min size vs dice")
+    plt.savefig(save_path + "threshold.jpg")
+    best_threshold = attempts_df["threshold"].values[0]
+    best_size = attempts_df["size"].values[0]
 
     # class_params = {0:(0.3,1200),1:(0.3,1200),2:(0.3,1200),3:(0.3,1200)}
     print("visualize starting...")
@@ -368,21 +381,27 @@ def main():
             output = ((model(data))[0]).cpu().detach().numpy()
             print(model(data).shape)
             print(output.shape)
-            image  = data[0].cpu().detach().numpy()
-            mask   = target[0].cpu().detach().numpy()
-            output = output.transpose(1 ,2, 0)
+            image = data[0].cpu().detach().numpy()
+            mask = target[0].cpu().detach().numpy()
+            output = output.transpose(1, 2, 0)
             image_vis = image.transpose(1, 2, 0)
 
-            mask = mask.astype('uint8').transpose(1, 2, 0)
+            mask = mask.astype("uint8").transpose(1, 2, 0)
             pr_mask = np.zeros((350, 525, 4))
             for j in range(4):
                 probability = resize_it(output[:, :, j])
-                pr_mask[:, :, j], _ = post_process(probability,
-                                                class_params[j][0],
-                                                class_params[j][1])
-            visualize_with_raw(image=image_vis, mask=pr_mask,
-                            original_image=image_vis, original_mask=mask,
-                            raw_image=image_vis, raw_mask=output,iter=i)
+                pr_mask[:, :, j], _ = post_process(
+                    probability, class_params[j][0], class_params[j][1]
+                )
+            visualize_with_raw(
+                image=image_vis,
+                mask=pr_mask,
+                original_image=image_vis,
+                original_mask=mask,
+                raw_image=image_vis,
+                raw_mask=output,
+                iter=i,
+            )
             if i >= 6:
                 break
 
@@ -393,12 +412,11 @@ def main():
     # del valid_dataset, valid_loader
     # gc.collect()
 
-
     test_loss = 0
     dice_score = 0
     print("testing start...")
-    pred = np.zeros((bs,4,350,525))
-    masks = np.zeros((bs,4,350,525))
+    pred = np.zeros((bs, 4, 350, 525))
+    masks = np.zeros((bs, 4, 350, 525))
 
     with torch.no_grad():
         for data, targ in tq(test_loader):
@@ -406,10 +424,10 @@ def main():
             if train_on_gpu:
                 data = data.cuda()
                 targ = targ.cuda()
-            outp = model(data) 
+            outp = model(data)
             loss = criterion(outp, targ)
             # print(outp.shape,targ.shape)
-            test_loss += loss.item()*data.shape[0]
+            test_loss += loss.item() * data.shape[0]
 
             outp = outp.cpu().detach().numpy()
             targ = targ.cpu().detach().numpy()
@@ -421,18 +439,20 @@ def main():
                     output = resize_it(outpu[j])
                     target = resize_it(targe[j])
                     # print(output.shape)
-                    output,_ = post_process(output,
-                                                    class_params[j][0],
-                                                    class_params[j][1])
-                    pred[p,j,:,:] = output
-                    masks[p,j,:,:] = target
+                    output, _ = post_process(
+                        output, class_params[j][0], class_params[j][1]
+                    )
+                    pred[p, j, :, :] = output
+                    masks[p, j, :, :] = target
 
             dice_cof = dice(pred, masks).item()
-            dice_score += dice_cof*data.size(0)
-            bar.set_postfix(ordered_dict={"valid_loss":loss.item(), "dice_score":dice_cof})  
+            dice_score += dice_cof * data.size(0)
+            bar.set_postfix(
+                ordered_dict={"valid_loss": loss.item(), "dice_score": dice_cof}
+            )
     # calculate average losses
     # test_loss = test_loss/len(test_loader.sampler)
     # dice_score = dice_score/len(test_loader.sampler)
-    test_loss = test_loss/len(test_loader.dataset)
-    dice_score = dice_score/len(test_loader.dataset)
+    test_loss = test_loss / len(test_loader.dataset)
+    dice_score = dice_score / len(test_loader.dataset)
     print(f"test loss: {test_loss}, dice score: {dice_score}")

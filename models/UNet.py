@@ -1,19 +1,3 @@
-import os
-import gc
-import cv2
-import time
-import tqdm
-import random
-import collections
-import numpy as np
-import pandas as pd
-import seaborn as sns
-from PIL import Image
-from functools import partial
-import matplotlib.pyplot as plt
-from tqdm.notebook import tqdm as tq
-
-
 import torch
 import torchvision
 import torch.nn as nn
@@ -21,6 +5,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.optim import lr_scheduler
 import torchvision.transforms as transforms
+
 
 class double_conv(nn.Module):
     """(conv => BN => ReLU) * 2"""
@@ -80,7 +65,7 @@ class up(nn.Module):
         diffX = x2.size()[3] - x1.size()[3]
 
         x1 = F.pad(x1, (diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2))
-        
+
         x = torch.cat([x2, x1], dim=1)
         return self.conv(x)
 

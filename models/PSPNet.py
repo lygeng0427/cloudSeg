@@ -1,10 +1,3 @@
-import os
-import gc
-import cv2
-import time
-import tqdm
-import random
-import collections
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -28,25 +21,38 @@ class PPM(nn.Module):
         super(PPM, self).__init__()
         self.features = []
         for bin in bins:
-            self.features.append(nn.Sequential(
-                nn.AdaptiveAvgPool2d(bin),
-                nn.Conv2d(in_dim, reduction_dim, kernel_size=1, bias=False),
-                nn.BatchNorm2d(reduction_dim),
-                nn.ReLU(inplace=True)
-            ))
+            self.features.append(
+                nn.Sequential(
+                    nn.AdaptiveAvgPool2d(bin),
+                    nn.Conv2d(in_dim, reduction_dim, kernel_size=1, bias=False),
+                    nn.BatchNorm2d(reduction_dim),
+                    nn.ReLU(inplace=True),
+                )
+            )
         self.features = nn.ModuleList(self.features)
 
     def forward(self, x):
         x_size = x.size()
         out = [x]
         for f in self.features:
-            out.append(F.interpolate(f(x), x_size[2:], mode='bilinear', align_corners=True))
+            out.append(
+                F.interpolate(f(x), x_size[2:], mode="bilinear", align_corners=True)
+            )
         return torch.cat(out, 1)
 
 
-
 class PSPNet(nn.Module):
-    def __init__(self, layers=50, bins=(1, 2, 3, 6), dropout=0.1, classes=2, zoom_factor=8, use_ppm=True, criterion=nn.CrossEntropyLoss(ignore_index=255), pretrained=True):
+    def __init__(
+        self,
+        layers=50,
+        bins=(1, 2, 3, 6),
+        dropout=0.1,
+        classes=2,
+        zoom_factor=8,
+        use_ppm=True,
+        criterion=nn.CrossEntropyLoss(ignore_index=255),
+        pretrained=True,
+    ):
         super(PSPNet, self).__init__()
         assert layers in [50, 101, 152]
         assert 2048 % len(bins) == 0
@@ -63,30 +69,37 @@ class PSPNet(nn.Module):
         else:
             resnet = models.resnet152(pretrained=pretrained)
 
-        self.layer0 = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool)
-        self.layer1, self.layer2, self.layer3, self.layer4 = resnet.layer1, resnet.layer2, resnet.layer3, resnet.layer4
+        self.layer0 = nn.Sequential(
+            resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool
+        )
+        self.layer1, self.layer2, self.layer3, self.layer4 = (
+            resnet.layer1,
+            resnet.layer2,
+            resnet.layer3,
+            resnet.layer4,
+        )
 
         for n, m in self.layer3.named_modules():
-            if 'conv2' in n:
+            if "conv2" in n:
                 m.dilation, m.padding, m.stride = (2, 2), (2, 2), (1, 1)
-            elif 'downsample.0' in n:
+            elif "downsample.0" in n:
                 m.stride = (1, 1)
         for n, m in self.layer4.named_modules():
-            if 'conv2' in n:
+            if "conv2" in n:
                 m.dilation, m.padding, m.stride = (4, 4), (4, 4), (1, 1)
-            elif 'downsample.0' in n:
+            elif "downsample.0" in n:
                 m.stride = (1, 1)
 
         fea_dim = 2048
         if use_ppm:
-            self.ppm = PPM(fea_dim, int(fea_dim/len(bins)), bins)
+            self.ppm = PPM(fea_dim, int(fea_dim / len(bins)), bins)
             fea_dim *= 2
         self.cls = nn.Sequential(
             nn.Conv2d(fea_dim, 512, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(512),
             nn.ReLU(inplace=True),
             nn.Dropout2d(p=dropout),
-            nn.Conv2d(512, classes, kernel_size=1)
+            nn.Conv2d(512, classes, kernel_size=1),
         )
         # if self.training:
         #     self.aux = nn.Sequential(
@@ -112,7 +125,7 @@ class PSPNet(nn.Module):
             x = self.ppm(x)
         x = self.cls(x)
         if self.zoom_factor != 1:
-            x = F.interpolate(x, size=(h, w), mode='bilinear', align_corners=True)
+            x = F.interpolate(x, size=(h, w), mode="bilinear", align_corners=True)
 
         # if self.training:
         #     aux = self.aux(x_tmp)
@@ -122,5 +135,5 @@ class PSPNet(nn.Module):
         #     aux_loss = self.criterion(aux, y)
         #     return x.max(1)[1], main_loss, aux_loss
         # else:
-              # return x
+        # return x
         return torch.sigmoid(x)

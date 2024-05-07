@@ -29,7 +29,8 @@ from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 
 # ablumentations for easy image augmentation for input as well as output
 import albumentations as albu
-plt.style.use('bmh')
+
+plt.style.use("bmh")
 
 
 # seeding function for reproducibility
@@ -48,28 +49,32 @@ def resize_it(x):
     return x
 
 
-class_names = ['Fish', 'Flower', 'Sugar', 'Gravel']
+class_names = ["Fish", "Flower", "Sugar", "Gravel"]
 
-def draw_convex_hull(mask, mode='convex'):
-    
+
+def draw_convex_hull(mask, mode="convex"):
+
     img = np.zeros(mask.shape)
     contours, hier = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     for c in contours:
-        if mode=='rect': # simple rectangle
+        if mode == "rect":  # simple rectangle
             x, y, w, h = cv2.boundingRect(c)
-            cv2.rectangle(img, (x, y), (x+w, y+h), (255, 255, 255), -1)
-        if mode=='convex': # minimum convex hull
+            cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 255), -1)
+        if mode == "convex":  # minimum convex hull
             hull = cv2.convexHull(c)
-            cv2.drawContours(img, [hull], 0, (255, 255, 255),-1)
-        else: # minimum area rectangle
+            cv2.drawContours(img, [hull], 0, (255, 255, 255), -1)
+        else:  # minimum area rectangle
             rect = cv2.minAreaRect(c)
             box = cv2.boxPoints(rect)
             box = np.int0(box)
-            cv2.drawContours(img, [box], 0, (255, 255, 255),-1)
-    return img/255.
+            cv2.drawContours(img, [box], 0, (255, 255, 255), -1)
+    return img / 255.0
 
-def get_img(x, folder: str = "", img_paths = "understanding_cloud_organization/train_image/"):
+
+def get_img(
+    x, folder: str = "", img_paths="understanding_cloud_organization/train_image/"
+):
     """
     Return image based on image name and folder.
     """
@@ -88,7 +93,7 @@ def rle_decode(mask_rle: str = "", shape: tuple = (1400, 2100)):
     :param shape: (height, width) of array to return
     Returns numpy array, 1 - mask, 0 - background
     """
-    if(mask_rle is np.nan):
+    if mask_rle is np.nan:
         return np.zeros(shape[0] * shape[1], dtype=np.uint8)
     try:
         s = mask_rle.split()
@@ -104,7 +109,12 @@ def rle_decode(mask_rle: str = "", shape: tuple = (1400, 2100)):
     return img.reshape(shape, order="F")
 
 
-def make_mask(df: pd.DataFrame, image_name: str = "img.jpg", shape: tuple = (350, 525), path = "understanding_cloud_organization/"):
+def make_mask(
+    df: pd.DataFrame,
+    image_name: str = "img.jpg",
+    shape: tuple = (350, 525),
+    path="understanding_cloud_organization/",
+):
     """
     Create mask based on df, image name and shape.
     """
@@ -112,11 +122,7 @@ def make_mask(df: pd.DataFrame, image_name: str = "img.jpg", shape: tuple = (350
     df = df[df["im_id"] == image_name]
     for idx, im_name in enumerate(df["im_id"].values):
         for classidx, classid in enumerate(["Fish", "Flower", "Gravel", "Sugar"]):
-            mask = cv2.imread(
-                path+"train_images_525/"
-                + classid
-                + im_name
-            )
+            mask = cv2.imread(path + "train_images_525/" + classid + im_name)
             if mask is None:
                 continue
 
@@ -125,6 +131,7 @@ def make_mask(df: pd.DataFrame, image_name: str = "img.jpg", shape: tuple = (350
             masks[:, :, classidx] = mask[:, :, 0]
     # masks = masks / 255
     return masks
+
 
 def to_tensor(x):
     """
@@ -147,7 +154,14 @@ def mask2rle(img):
 
 
 def visualize_with_raw(
-    image, mask, original_image=None, original_mask=None, raw_image=None, raw_mask=None, iter=None, save_path = "datasaved/Unet/"
+    image,
+    mask,
+    original_image=None,
+    original_mask=None,
+    raw_image=None,
+    raw_mask=None,
+    iter=None,
+    save_path="datasaved/Unet/",
 ):
     """
     Plot image and masks.
@@ -181,13 +195,12 @@ def visualize_with_raw(
         ax[2, i + 1].set_title(
             f"Predicted mask with processing {class_dict[i]}", fontsize=fontsize
         )
-    plt.savefig(save_path+"picture"+str(iter)+".png")
+    plt.savefig(save_path + "picture" + str(iter) + ".png")
 
 
 # sigmoid = lambda x: 1 / (1 + np.exp(-x))
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
-
 
 
 def post_process(probability, threshold, min_size):
@@ -197,7 +210,7 @@ def post_process(probability, threshold, min_size):
     than `min_size` are ignored
     """
     # don't remember where I saw it
-    mask = (cv2.threshold(probability, threshold, 1, cv2.THRESH_BINARY)[1])
+    mask = cv2.threshold(probability, threshold, 1, cv2.THRESH_BINARY)[1]
     mask = draw_convex_hull(mask.astype(np.uint8))
     num_component, component = cv2.connectedComponents(mask.astype(np.uint8))
     predictions = np.zeros((350, 525), np.float32)
@@ -209,15 +222,12 @@ def post_process(probability, threshold, min_size):
             num += 1
     return predictions, num
 
+
 def get_training_augmentation():
     train_transform = [
         albu.HorizontalFlip(p=0.5),
         albu.ShiftScaleRotate(
-            scale_limit=0.5,
-            rotate_limit=0,
-            shift_limit=0.1,
-            p=0.5,
-            border_mode=0
+            scale_limit=0.5, rotate_limit=0, shift_limit=0.1, p=0.5, border_mode=0
         ),
         albu.GridDistortion(p=0.5),
         albu.Resize(320, 640),
@@ -235,14 +245,14 @@ def get_validation_augmentation():
     return albu.Compose(test_transform)
 
 
-
 def dice(img1, img2):
     img1 = np.asarray(img1).astype(bool)
     img2 = np.asarray(img2).astype(bool)
 
     intersection = np.logical_and(img1, img2)
 
-    return (2.0 * intersection.sum()+1e-7) / (img1.sum() + img2.sum()+1e-7)
+    return (2.0 * intersection.sum() + 1e-7) / (img1.sum() + img2.sum() + 1e-7)
+
 
 def dice_no_threshold(
     outputs: torch.Tensor,
@@ -261,6 +271,6 @@ def dice_no_threshold(
 
     intersection = torch.sum(targets * outputs)
     union = torch.sum(targets) + torch.sum(outputs)
-    dice = (2 * intersection+eps) / (union + eps)
+    dice = (2 * intersection + eps) / (union + eps)
 
     return dice
